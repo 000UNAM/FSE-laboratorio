@@ -1,4 +1,4 @@
-# 🔧 Fundamentos de Sistemas Embebidos — Laboratorio
+# 🔧 Fundamentos de Sistemas Embebidos
 
 ![C](https://img.shields.io/badge/C-%2300599C.svg?style=for-the-badge&logo=c&logoColor=white)
 ![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-%23A22846.svg?style=for-the-badge&logo=raspberrypi&logoColor=white)
