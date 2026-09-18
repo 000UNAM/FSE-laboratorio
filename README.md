@@ -437,7 +437,3 @@ Se busca mantener:
 * [Git Documentation](https://git-scm.com/doc)
 * [Microchip MCP3008](https://www.microchip.com/en-us/product/mcp3008)
 * [Bosch BME280](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/)
-
-
-````
-
