@@ -1,0 +1,25 @@
+[Unit]
+Description=Lectura combinada de sensores y control de LED
+After=local-fs.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ivan
+Group=ivan
+SupplementaryGroups=i2c spi gpio
+WorkingDirectory=/unam/fse/practicas/03
+ExecStartPre=/usr/bin/test -c /dev/i2c-1
+ExecStartPre=/usr/bin/test -c /dev/spidev0.0
+ExecStart=/usr/bin/stdbuf -oL -eL /unam/fse/practicas/03/sensor_combinado
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sensor-combinado
+
+[Install]
+WantedBy=multi-user.target
