@@ -1,0 +1,122 @@
+FUNDAMENTOS DE SISTEMAS EMBEBIDOS — PRÁCTICA 5
+Procesos e hilos
+Fecha de realización: 3 de octubre de 2026
+
+Entorno: Raspberry Pi 4 Model B Rev 1.5, rpi-fse-inm, usuario ivan.
+Debian GNU/Linux 13 (trixie), kernel 6.18.50+rpt-rpi-v8, GCC 14.2.0.
+Cuatro núcleos. Repositorio: /unam/fse; práctica: practicas/05.
+El servicio real sensor-combinado.service estaba inactive, dead y disabled.
+Se realizó la versión sin hardware del reto.
+
+PARTE A — PROCESOS, PADRES, ESTADOS E HILOS
+PID 1: systemd, comando /sbin/init splash, estado Ss.
+La sesión interactiva bash tenía PID 1870 y PPID 1869; su padre era
+sshd-session. Árbol observado: systemd(1) -> sshd(1261) ->
+sshd-session(1860) -> sshd-session(1869) -> bash(1870).
+En la lista guardada hubo 116 procesos S, 72 I y 1 R: predominó S.
+S significa espera interrumpible: el proceso espera un evento y puede
+despertar al recibirlo. I identifica un hilo del kernel inactivo; R indica
+ejecución o disposición para ejecutarse. Las letras adicionales de STAT
+aportan atributos; por ejemplo, s significa líder de sesión.
+NLWP cuenta los hilos del proceso; wireplumber (PID 1319) tenía 9.
+Estos PID y recuentos corresponden a la observación realizada.
+
+PARTE B — FORK Y ZOMBIE
+fork_hijos: padre PID 2033; hijos 2035, 2036 y 2037, todos con PPID 2033.
+Durante su pausa se observaron los tres hijos en S+ y el árbol correcto.
+El padre esperó su terminación y anunció que los tres habían terminado.
+zombie: padre PID 2106; hijo PID 2108, PPID 2106, estado Z+ y <defunct>.
+Z significa zombie: el hijo terminó y queda su información de salida
+pendiente de recoger por el padre mediante wait o waitpid. El signo +
+indica pertenencia al grupo de procesos en primer plano de la terminal.
+Tras la pausa de 30 s, waitpid recogió al hijo con salida 0 y este dejó de
+aparecer en ps. El zombie no ejecutaba código ni consumía CPU trabajando.
+
+PARTE C — CONDICIÓN DE CARRERA Y MUTEX
+Dos hilos trabajadores, 1000000 incrementos por hilo; esperado: 2000000.
+Ambas versiones se compilaron con -O0 y -pthread.
+Ensayo    Sin mutex    Con mutex
+  1        1012681       2000000
+  2        1004999       2000000
+  3        1010130       2000000
+  4        1009925       2000000
+  5        1032130       2000000
+  6        1009677       2000000
+  7        1005108       2000000
+  8        1012584       2000000
+  9        1010765       2000000
+ 10        1004326       2000000
+Sin mutex: 0/10 correctos; los diez valores erróneos fueron distintos.
+Con mutex: 10/10 correctos.
+contador++ requiere leer, sumar y escribir. Dos hilos pueden leer el mismo
+valor y sobrescribir una actualización. Formalmente, la carrera sobre el
+objeto no atómico produce comportamiento indefinido en C, incluso con -O0.
+Un resultado correcto ocasional o el uso de volatile no elimina la carrera.
+El mutex protege cada incremento completo: lock, contador++, unlock.
+Tiempos del lote de DIEZ ejecuciones, incluido el bucle y los arranques:
+Versión       real (s)    user (s)    sys (s)
+Sin mutex       0.066       0.101      0.013
+Con mutex       2.476       4.716      0.034
+En esta medición, el lote con mutex tardó 37.52 veces el tiempo real del
+lote sin mutex. La exclusión mutua serializa los incrementos y añade el
+costo de bloquear, desbloquear y competir por el contador. La versión sin
+mutex es incorrecta; esta relación no es un costo universal de los mutex.
+
+PARTE D — COSTO DE PROCESOS E HILOS
+Cada ensayo realizó 2000 ciclos fork/_exit/waitpid y después 2000 ciclos
+pthread_create/retorno/pthread_join, de forma secuencial. CLOCK_MONOTONIC.
+Ensayo    Procesos (ms)    Hilos (ms)    Procesos/Hilos
+  1        536.547143      113.365385       4.732901
+  2        531.954725      113.474235       4.687890
+  3        531.861746      109.921974       4.838539
+Promedio   533.454538      112.253865
+Relación de promedios: 4.752215, aproximadamente 4.75 veces.
+fork crea un espacio de direcciones separado y duplica las tablas de páginas; Linux usa copia en escritura y no copia físicamente toda la memoria de inmediato.
+Un hilo comparte el espacio de direcciones del proceso, aunque también necesita pila y estructuras de ejecución; evita crear ese espacio separado.
+Se midió el ciclo completo de creación, terminación y espera, no únicamente
+la llamada de creación ni la velocidad general de ejecutar un programa.
+
+PARTE E — NICE Y REPARTO DE CPU
+Ambos quemar se fijaron al núcleo 0 y pertenecían al mismo autogroup-106.
+Última muestra de top, con intervalo de 1 s, de cada ejecución:
+Caso nice 0/19: PID 14335, NI 0, CPU 99.0%; PID 14336, NI 19, CPU 1.0%.
+Caso nice 0/0: PID 14369, NI 0, CPU 50.0%; PID 14370, NI 0, CPU 50.0%.
+Un nice mayor reduce la prioridad relativa bajo el planificador justo.
+Con nice 19, el proceso recibió mucho menos tiempo del núcleo disputado;
+con iguales prioridades, el reparto observado fue aproximadamente igual.
+La explicación de clase con CFS usa pesos ligados a nice. Para nuestro
+kernel 6.18 debe considerarse su evolución con EEVDF: Linux inició la
+transición desde CFS en 6.6. El efecto de nice sigue siendo relevante.
+Son porcentajes observados en intervalos concretos, no cuotas garantizadas.
+Las ocho muestras completas quedaron guardadas. Los procesos terminaron
+mediante SIGTERM y wait de sus PID respectivos al cerrar cada experimento.
+
+PARTE F — PRODUCTOR Y CONSUMIDOR
+Buffer circular de 8 posiciones; datos 1 a 100; pausas de 100 y 300 ms.
+huecos inicia en 8 y llenos en 0; sem_wait espera sin un bucle activo.
+El mutex protege el buffer, índices, ocupación, contadores y registros.
+Se espera el semáforo antes de tomar el mutex, y sem_post se realiza tras
+liberarlo. nanosleep implementa las pausas; ambos trabajadores se unen
+con pthread_join. La pausa de 100 ms puede sumarse a la espera por espacio.
+Resultado: 100 producidos, 100 consumidos, 0 errores FIFO, máximo 8/8,
+0 elementos pendientes. Tiempo total: 30014.467 ms, aproximadamente 30.014 s.
+La comprobación del registro confirmó 100 eventos P y 100 C, secuencias
+1..100, cero errores de ocupación y ocupación igual a P-C en cada evento.
+El buffer se llenó por primera vez al producir el dato 12 a los 1101.207 ms.
+
+Si el consumidor fuera diez veces más lento que el productor (1000 ms frente
+a 100 ms), el buffer tendería a llenarse y un productor que siguiera
+escribiendo sin control podría sobrescribir datos pendientes. Nuestra
+solución lo evita: cuando huecos vale cero, sem_wait bloquea al productor
+hasta que el consumidor libera una posición; el mutex protege la operación.
+No se pierden datos y el productor se adapta al ritmo del consumidor.
+Si se interpreta como diez veces la pausa actual del consumidor, serían
+3000 ms en lugar de 300 ms y se aplicaría el mismo mecanismo.
+
+REFERENCIAS TÉCNICAS
+Linux man-pages: ps(1), fork(2), wait(2), pthread_mutex_lock(3p),
+sem_init(3), sem_wait(3), sem_post(3) y sched(7): https://man7.org/linux/man-pages/
+C11, borrador N1570, sección 5.1.2.4, párrafo 25 (carreras de datos):
+https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf
+Documentación del kernel, planificador EEVDF:
+https://docs.kernel.org/scheduler/sched-eevdf.html
