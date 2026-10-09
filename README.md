@@ -30,6 +30,9 @@ A lo largo de las prácticas se trabaja con:
 - Proceso de arranque de Linux.
 - Servicios y dependencias con systemd.
 - Análisis y optimización del tiempo de arranque.
+- Procesos, hilos y sincronización con mutex y semáforos.
+- Módulos del kernel, dispositivos de caracteres y llamadas al sistema.
+- Comunicación entre procesos y medición del costo de acceso al kernel.
 - Control de versiones con Git.
 - Desarrollo y prueba de sistemas que interactúan con hardware real.
 
@@ -43,39 +46,33 @@ A lo largo de las prácticas se trabaja con:
 | 02 | Entradas y salidas digitales | GPIO, libgpiod, polling y eventos |
 | 03 | Sensores y conversión analógica | I2C, SPI, BME280, MCP3008 y GPIO |
 | 04 | Proceso de arranque | EEPROM, journalctl, systemd y systemd-analyze |
+| [05](practicas/05/) | Procesos e hilos | fork, pthreads, mutex, semáforos, nice y taskset |
+| [06](practicas/06/) | Drivers y espacio de kernel | Módulos, sysfs, miscdevice, IPC y strace |
 
 ---
 
 ## 📁 Estructura del repositorio
 
-```text
-FSE-laboratorio/
-└── practicas/
-    ├── 01/
-    │   ├── reporte-sistema.c
-    │   └── sysinfo.sh
-    │
-    ├── 02/
-    │   ├── leds.c
-    │   ├── boton-polling.c
-    │   └── semaforo.c
-    │
-    ├── 03/
-    │   ├── bmp280_id.c
-    │   ├── bme280_temp.c
-    │   ├── leer_pot.c
-    │   └── sensor_combinado.c
-    │
-    └── 04/
-        └── sensor-combinado.service
-```
+| Directorio | Archivos publicados |
+| --- | --- |
+| [`practicas/01/`](practicas/01/) | `reporte-sistema.c`, `sysinfo.sh` |
+| [`practicas/02/`](practicas/02/) | `leds.c`, `boton-polling.c`, `semaforo.c` |
+| [`practicas/03/`](practicas/03/) | `bmp280_id.c`, `bme280_temp.c`, `leer_pot.c`, `sensor_combinado.c` |
+| [`practicas/04/`](practicas/04/) | `sensor-combinado.service` |
+| [`practicas/05/`](practicas/05/) | `fork_hijos.c`, `zombie.c`, `contador_hilos.c`, `contador_mutex.c`, `costo.c`, `quemar.c`, `productor_consumidor.c`, `respuestas_p5.txt` |
+| [`practicas/06/`](practicas/06/) | `Makefile`, `hola.c`, `parametros.c`, `p6buf.c`, `cliente.c`, `demo_ipc.c`, `tiempo.c`, `p6cnt.c`, `descargar.sh`, `evidencia.md` |
 
 Cada directorio corresponde a una práctica y contiene principalmente los
 **programas fuente desarrollados en C o Bash** y los archivos de configuración
 necesarios.
 
-Los archivos ejecutables generados durante la compilación no forman parte del
-repositorio.
+Los programas y módulos se compilan localmente. La excepción publicada es
+[`practicas/06/descargar.sh`](practicas/06/descargar.sh): un ejecutable ARM64
+generado con `shc` para retirar los módulos de la práctica 6. Aunque su nombre
+termina en `.sh`, es un binario ELF y se ejecuta directamente con `./descargar.sh`.
+
+Los scripts auxiliares de trabajo y la carpeta local `ejecutables-arm64/`
+se conservan fuera de los archivos publicados en GitHub.
 
 ---
 
@@ -425,6 +422,106 @@ deshabilitado para poder desmontar el circuito de forma segura.
 
 ---
 
+### 🧵 Práctica 5 — Procesos e hilos
+
+Estudio de la creación y observación de procesos e hilos, el acceso concurrente
+a memoria compartida y la coordinación de tareas. Se realizó por SSH, sin
+circuito externo.
+
+#### Temas y programas
+
+| Archivo | Experimento |
+| --- | --- |
+| `fork_hijos.c` | Crear tres hijos con `fork`, observar PID y PPID y esperar su terminación. |
+| `zombie.c` | Observar un hijo terminado en estado `Z` y recoger su estado mediante `waitpid`. |
+| `contador_hilos.c` | Incrementar un contador desde dos hilos sin proteger la sección crítica. |
+| `contador_mutex.c` | Proteger los incrementos con un mutex. |
+| `costo.c` | Comparar ciclos completos de creación, terminación y espera de procesos e hilos. |
+| `quemar.c` | Observar el reparto de CPU con `nice` y afinidad mediante `taskset`. |
+| `productor_consumidor.c` | Coordinar un buffer circular de ocho posiciones con semáforos y mutex. |
+
+#### Resultados observados
+
+- El hijo zombie permaneció visible hasta que su padre ejecutó `waitpid`.
+- El contador sin mutex no obtuvo los **2 000 000** incrementos esperados en
+  ninguna de diez ejecuciones; la versión con mutex los obtuvo en las diez.
+  La versión sin protección contiene una carrera de datos y no garantiza un
+  resultado definido en C.
+- En tres ensayos de 2 000 ciclos, los promedios fueron **533.455 ms** para
+  procesos y **112.254 ms** para hilos. Estos tiempos incluyen creación,
+  terminación, espera y el bucle del experimento.
+- Con dos cargas en el mismo núcleo y autogroup, la muestra final mostró un
+  reparto aproximado de **99 % / 1 %** con `nice 0 / 19`, y **50 % / 50 %** con
+  `nice 0 / 0`. Son resultados de esa ejecución, no porcentajes garantizados.
+- El productor y el consumidor transfirieron **100 datos**, sin errores ni
+  elementos pendientes; la ocupación máxima fue **8/8**.
+
+[Códigos completos de la práctica 5](practicas/05/) ·
+[Respuestas y referencias](practicas/05/respuestas_p5.txt)
+
+---
+
+### 🧩 Práctica 6 — Drivers y espacio de kernel
+
+Construcción de módulos y dispositivos virtuales para estudiar cómo una
+aplicación de usuario solicita operaciones al kernel. Se trabajó en una
+Raspberry Pi 4 con **Debian 13 (trixie), ARM64**, kernel
+**`6.18.50+rpt-rpi-v8`** y GCC **14.2.0**. Estas versiones corresponden al
+entorno del experimento.
+
+#### Partes y archivos
+
+| Parte | Trabajo realizado | Archivos o interfaces |
+| --- | --- | --- |
+| A | Comprobar el entorno y la correspondencia entre el kernel y sus headers. | `Makefile`, `/lib/modules/$(uname -r)/build` |
+| B | Cargar y descargar un módulo mínimo; observar `lsmod`, sysfs y el diario del kernel. | `hola.c` |
+| C | Pasar parámetros al cargar el módulo y consultar o modificar los permitidos en sysfs. | `parametros.c`, `/sys/module/parametros/parameters/` |
+| D | Implementar un dispositivo de caracteres con un buffer de 256 bytes protegido por mutex. | `p6buf.c`, `/dev/p6buf` |
+| E | Usar el dispositivo desde C y comparar la interacción con una tubería entre padre e hijo. | `cliente.c`, `demo_ipc.c`, `strace` |
+| F | Medir lectura de memoria, `getppid`, `pread` y transferencias SPI. | `tiempo.c` |
+| G | Relacionar programas de I2C, SPI y GPIO con los nodos y drivers que utilizan. | Programas de la práctica 3, `/dev`, `/sys`, trazas de `strace` |
+| Reto | Contar aperturas, aceptar la orden `reset` y rechazar órdenes inválidas. | `p6cnt.c`, `/dev/p6cnt` |
+| H | Retirar los módulos y comprobar que desaparecen los dispositivos virtuales. | `descargar.sh` |
+
+#### Resultados observados
+
+- Los headers coincidieron con la versión del kernel en ejecución.
+- `hola` apareció en `lsmod`; cargar un módulo no creó un proceso con PID propio.
+- Se verificaron los permisos y los cambios de parámetros mediante sysfs.
+- El cliente escribió y recuperó un mensaje de **29 bytes** en `p6buf`.
+  Una escritura de **300 bytes** fue rechazada con `ENOSPC`
+  («no queda espacio en el dispositivo»).
+- `p6cnt` contó aperturas, aceptó `reset` y rechazó una orden inválida con
+  `EINVAL` («argumento no válido»). La siguiente lectura después del reinicio
+  mostró una apertura, porque abrir el dispositivo también incrementa el contador.
+- Al terminar, se comprobó la ausencia de `hola`, `parametros`, `p6buf` y
+  `p6cnt`, así como de `/dev/p6buf` y `/dev/p6cnt`.
+
+#### Mediciones de tiempo
+
+Mediana de los promedios por operación obtenidos en tres corridas:
+
+| Operación | Tiempo |
+| --- | ---: |
+| Lectura de memoria de usuario | 1.1 ns/op |
+| Llamada al sistema `getppid` | 449.2 ns/op |
+| `pread` de un byte en `/dev/p6buf` | 606.7 ns/op |
+| Transferencia SPI de tres bytes a 1 MHz | 35 979.3 ns/op |
+
+Cada corrida utilizó 1 000 000 de operaciones para memoria, `getppid` y
+`pread`, y 10 000 transferencias SPI. Son mediciones de este equipo y de este
+programa, con el trabajo del bucle incluido.
+
+**La práctica 6 se realizó sin circuito externo.** Las consultas I2C al sensor
+ausente produjeron `EIO` («error de entrada/salida»). Las transferencias SPI
+completadas permiten estudiar el acceso al bus, pero no acreditan la presencia
+del MCP3008 ni una lectura válida de voltaje o temperatura.
+
+[Códigos completos de la práctica 6](practicas/06/) ·
+[Evidencias y respuestas de las partes A–G, reto y descarga final](practicas/06/evidencia.md)
+
+---
+
 ## 🛠️ Compilación
 
 Los programas están desarrollados para **Linux / Raspberry Pi OS**.
@@ -465,7 +562,88 @@ gcc practicas/03/sensor_combinado.c \
   $(pkg-config --cflags --libs libgpiod)
 ```
 
-Los binarios se generan localmente, pero no se agregan al repositorio.
+Los binarios de estos programas se generan localmente.
+
+### Compilar los programas de la práctica 5
+
+En la terminal SSH de la Raspberry Pi, desde la carpeta de la práctica:
+
+```bash
+cd /unam/fse/practicas/05
+
+gcc -Wall -Wextra -std=c11 -O0 fork_hijos.c -o fork_hijos
+gcc -Wall -Wextra -std=c11 -O0 zombie.c -o zombie
+gcc -Wall -Wextra -std=c11 -O0 -pthread contador_hilos.c -o contador_hilos
+gcc -Wall -Wextra -std=c11 -O0 -pthread contador_mutex.c -o contador_mutex
+gcc -Wall -Wextra -std=c11 -O0 -pthread costo.c -o costo
+gcc -Wall -Wextra -std=c11 -O2 quemar.c -o quemar
+gcc -Wall -Wextra -std=c11 -O2 -pthread productor_consumidor.c -o productor_consumidor
+```
+
+`-pthread` habilita las opciones de compilación y enlace necesarias para los
+programas con hilos. Se conservan las opciones de optimización utilizadas en
+los experimentos.
+
+### Compilar los módulos y programas de la práctica 6
+
+Estos comandos se ejecutan **dentro de la sesión SSH de la Raspberry Pi**.
+Primero se debe comprobar que los headers corresponden al kernel en ejecución:
+
+```bash
+cd /unam/fse/practicas/06
+
+uname -r
+readlink -f "/lib/modules/$(uname -r)/build"
+make -s -C "/lib/modules/$(uname -r)/build" kernelrelease
+```
+
+La versión mostrada por `kernelrelease` debe coincidir con `uname -r`. Si faltan
+los headers o las versiones difieren, se debe resolver esa diferencia antes de
+compilar. Con la comprobación correcta:
+
+```bash
+make
+gcc -Wall -Wextra -O2 cliente.c -o cliente
+gcc -Wall -Wextra -O2 demo_ipc.c -o demo_ipc
+gcc -Wall -Wextra -O2 tiempo.c -o tiempo
+```
+
+El `Makefile` utiliza kbuild para generar `hola.ko`, `parametros.ko`, `p6buf.ko`
+y `p6cnt.ko` para ese kernel. Los tres comandos `gcc` compilan los programas de
+usuario. Compilar los módulos no los carga.
+
+### Probar el dispositivo virtual y finalizar
+
+Con `p6buf` todavía descargado, en la Raspberry Pi:
+
+```bash
+cd /unam/fse/practicas/06
+sudo insmod ./p6buf.ko
+./cliente "hola desde espacio de usuario"
+./demo_ipc
+./tiempo
+```
+
+`cliente` deja contenido en el buffer antes de la medición con `tiempo`.
+La parte SPI requiere que exista `/dev/spidev0.0` y que el usuario tenga acceso;
+si no puede abrirlo, el programa indica que la omite.
+
+Para retirar los módulos de la práctica:
+
+```bash
+cd /unam/fse/practicas/06
+./descargar.sh
+```
+
+`descargar.sh` descarga los módulos presentes, comprueba su ausencia y genera
+un log. Se puede repetir: los módulos que ya están descargados se omiten.
+Su ruta de trabajo está fijada a `/unam/fse/practicas/06`.
+
+El archivo publicado es un **ELF ARM64 generado con `shc`** y requiere un
+entorno Linux compatible y Bash. Se ejecuta con `./descargar.sh`, no con
+`bash descargar.sh`. Se puede copiar a Linux Mint como respaldo, pero no se
+ejecuta de forma nativa en una computadora x86_64. `shc` dificulta la lectura
+directa del script; no garantiza que su contenido sea irrecuperable.
 
 ---
 
@@ -583,27 +761,9 @@ systemctl --failed --no-pager
 
 ## 🔄 Flujo de trabajo con Git
 
-El repositorio conserva el historial de cada práctica.
-
-```text
-practica-01
-     ↓
-Reorganiza repositorio con raiz en /unam/fse
-     ↓
-practica-02
-     ↓
-practica-03
-     ↓
-Update README.md
-     ↓
-practica-04
-```
-
-El commit final de la práctica 4 fue:
-
-```text
-1aa7cd0 practica-04
-```
+El repositorio conserva el historial de las prácticas **01 a 06** en la rama
+`main`. La publicación se realiza desde el repositorio de la Raspberry Pi,
+ubicado en `/unam/fse`.
 
 Para consultar el historial:
 
@@ -625,16 +785,19 @@ git commit -m "descripcion"
 git push
 ```
 
-Si el remoto contiene cambios nuevos, primero se deben integrar:
+Si el remoto contiene cambios nuevos, primero se consulta la diferencia:
 
 ```bash
 git fetch origin
-git rebase origin/main
-git push origin main
+git status --short --branch
+git log --oneline --left-right HEAD...origin/main
 ```
 
-No se recomienda utilizar `git push --force` para resolver una divergencia en
-la rama principal.
+Con los cambios locales preparados, si la rama solo está atrasada se puede
+integrar mediante `git merge --ff-only origin/main`. Si existen commits en
+ambos lados, se revisan y se integran mediante merge, como se hizo en la
+práctica 5, antes de volver a publicar. Se seleccionan los archivos por su ruta
+para evitar incluir binarios, registros o scripts auxiliares por accidente.
 
 ---
 
@@ -664,6 +827,14 @@ Durante las prácticas se han aplicado conceptos como:
 - Dependencias de arranque.
 - Medición con `systemd-analyze`.
 - Optimización reversible.
+- Procesos, PID, PPID y estados de ejecución.
+- Hilos POSIX, condiciones de carrera y exclusión mutua.
+- Semáforos, productor-consumidor y buffers circulares.
+- Prioridad con `nice` y afinidad de CPU.
+- Módulos del kernel y parámetros mediante sysfs.
+- Dispositivos de caracteres y operaciones de archivo.
+- Llamadas al sistema, tuberías y trazas con `strace`.
+- Medición del costo de acceso al kernel y a buses de periféricos.
 - Control de versiones con Git.
 
 ---
@@ -701,6 +872,10 @@ Se busca mantener:
 - [Raspberry Pi bootloader EEPROM](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html)
 - [libgpiod Documentation](https://libgpiod.readthedocs.io/)
 - [Linux Kernel Documentation](https://docs.kernel.org/)
+- [Linux: construcción de módulos externos con kbuild](https://docs.kernel.org/kbuild/modules.html)
+- [Linux manual pages: fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html)
+- [Linux manual pages: pthreads(7)](https://man7.org/linux/man-pages/man7/pthreads.7.html)
+- [shc: documentación del proyecto](https://github.com/neurobin/shc)
 - [systemd Documentation](https://www.freedesktop.org/software/systemd/man/systemd.html)
 - [systemd-analyze Documentation](https://www.freedesktop.org/software/systemd/man/systemd-analyze.html)
 - [NetworkManager-wait-online](https://networkmanager.dev/docs/api/latest/NetworkManager-wait-online.service.html)
