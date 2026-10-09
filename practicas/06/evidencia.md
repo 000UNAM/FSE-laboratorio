@@ -1,7 +1,5 @@
 # Práctica 6: Driver — evidencia y respuestas
 
-Grupo 6 · Fundamentos de Sistemas Embebidos · Facultad de Ingeniería, UNAM.
-
 [Códigos completos de la práctica](https://github.com/000UNAM/FSE-laboratorio/tree/main/practicas/06)
 
 Las salidas siguientes proceden de las ejecuciones reales en la Raspberry. Los cálculos derivados se distinguen de las mediciones. Se trabajó sin circuito externo.
