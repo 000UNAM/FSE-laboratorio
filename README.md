@@ -42,10 +42,10 @@ A lo largo de las prácticas se trabaja con:
 
 | Práctica | Tema principal | Tecnologías |
 | --- | --- | --- |
-| 01 | Introducción al entorno de la Raspberry Pi | Linux, Bash, C, SSH y Git |
-| 02 | Entradas y salidas digitales | GPIO, libgpiod, polling y eventos |
-| 03 | Sensores y conversión analógica | I2C, SPI, BME280, MCP3008 y GPIO |
-| 04 | Proceso de arranque | EEPROM, journalctl, systemd y systemd-analyze |
+| [01](practicas/01/) | Introducción al entorno de la Raspberry Pi | Linux, Bash, C, SSH y Git |
+| [02](practicas/02/) | Entradas y salidas digitales | GPIO, libgpiod, polling y eventos |
+| [03](practicas/03/) | Sensores y conversión analógica | I2C, SPI, BME280, MCP3008 y GPIO |
+| [04](practicas/04/) | Proceso de arranque | EEPROM, journalctl, systemd y systemd-analyze |
 | [05](practicas/05/) | Procesos e hilos | fork, pthreads, mutex, semáforos, nice y taskset |
 | [06](practicas/06/) | Drivers y espacio de kernel | Módulos, sysfs, miscdevice, IPC y strace |
 
