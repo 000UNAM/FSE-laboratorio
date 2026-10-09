@@ -631,12 +631,6 @@ cd /unam/fse/practicas/06
 un log. Se puede repetir: los módulos que ya están descargados se omiten.
 Su ruta de trabajo está fijada a `/unam/fse/practicas/06`.
 
-El archivo publicado es un **ELF ARM64 generado con `shc`** y requiere un
-entorno Linux compatible y Bash. Se ejecuta con `./descargar.sh`, no con
-`bash descargar.sh`. Se puede copiar a Linux Mint como respaldo, pero no se
-ejecuta de forma nativa en una computadora x86_64. `shc` dificulta la lectura
-directa del script; no garantiza que su contenido sea irrecuperable.
-
 ---
 
 ## ▶️ Ejecución manual
