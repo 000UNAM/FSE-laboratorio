@@ -66,14 +66,6 @@ Cada directorio corresponde a una práctica y contiene principalmente los
 **programas fuente desarrollados en C o Bash** y los archivos de configuración
 necesarios.
 
-Los programas y módulos se compilan localmente. La excepción publicada es
-[`practicas/06/descargar.sh`](practicas/06/descargar.sh): un ejecutable ARM64
-generado con `shc` para retirar los módulos de la práctica 6. Aunque su nombre
-termina en `.sh`, es un binario ELF y se ejecuta directamente con `./descargar.sh`.
-
-Los scripts auxiliares de trabajo y la carpeta local `ejecutables-arm64/`
-se conservan fuera de los archivos publicados en GitHub.
-
 ---
 
 ## 🧪 Prácticas
