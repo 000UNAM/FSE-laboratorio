@@ -1,0 +1,17 @@
+tipos
+bits
+desborde
+desborde_ub
+regs_leer
+leds_regs
+boton_regs
+sensores
+panel
+b_con_O0
+b_sin_O0
+b_con_O2
+b_sin_O2
+*.s
+*.o
+# Scripts personales: no publicar
+*.sh
