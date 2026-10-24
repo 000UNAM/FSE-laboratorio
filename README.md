@@ -35,6 +35,9 @@ A lo largo de las prácticas se trabaja con:
 - Comunicación entre procesos y medición del costo de acceso al kernel.
 - Control de versiones con Git.
 - Desarrollo y prueba de sistemas que interactúan con hardware real.
+- Programación de GPIO mediante registros y memoria mapeada.
+- Máquinas de estados, histéresis y registro de datos en CSV.
+- Pruebas automatizadas y análisis del tiempo de CPU.
 
 ---
 
@@ -48,6 +51,8 @@ A lo largo de las prácticas se trabaja con:
 | [04](practicas/04/) | Proceso de arranque | EEPROM, journalctl, systemd y systemd-analyze |
 | [05](practicas/05/) | Procesos e hilos | fork, pthreads, mutex, semáforos, nice y taskset |
 | [06](practicas/06/) | Drivers y espacio de kernel | Módulos, sysfs, miscdevice, IPC y strace |
+| [07](practicas/07/) | C embebido y acceso a registros GPIO | Tipos, bits, `mmap`, `volatile`, I2C y SPI |
+| [08](practicas/08/p08/) | Centinela: alarma térmica y eficiencia | C, máquina de estados, GPIO, BME280, MCP3008, pruebas y CPU |
 
 ---
 
@@ -61,6 +66,8 @@ A lo largo de las prácticas se trabaja con:
 | [`practicas/04/`](practicas/04/) | `sensor-combinado.service` |
 | [`practicas/05/`](practicas/05/) | `fork_hijos.c`, `zombie.c`, `contador_hilos.c`, `contador_mutex.c`, `costo.c`, `quemar.c`, `productor_consumidor.c`, `respuestas_p5.txt` |
 | [`practicas/06/`](practicas/06/) | `Makefile`, `hola.c`, `parametros.c`, `p6buf.c`, `cliente.c`, `demo_ipc.c`, `tiempo.c`, `p6cnt.c`, `descargar.sh`, `evidencia.md` |
+| [`practicas/07/`](practicas/07/) | `tipos.c`, `bits.c`, `desborde.c`, `regs_leer.c`, `leds_regs.c`, `boton_regs.c`, `sensores.c`, `panel.c`, `gpio_regs.h`, `Makefile`, `evidencia.md`, `.gitignore` |
+| [`practicas/08/p08/`](practicas/08/p08/) | `centinela.c`, `centinela_logica.h`, `centinela_cfg.h`, `hw.h`, `hw_pi.h`, `hw_sim.h`, `gpio_regs.h`, `sensores_lib.h`, `prueba_logica.c`, `medir_cpu.sh`, `Makefile`, `.gitignore` |
 
 Cada directorio corresponde a una práctica y contiene principalmente los
 **programas fuente desarrollados en C o Bash** y los archivos de configuración
@@ -514,6 +521,168 @@ del MCP3008 ni una lectura válida de voltaje o temperatura.
 
 ---
 
+### 🧮 Práctica 7 — C embebido y acceso directo a registros GPIO
+
+Estudio de las particularidades del lenguaje C para sistemas embebidos: tipos
+enteros, conversiones, máscaras de bits, desbordamientos y acceso a periféricos
+mediante registros de hardware. El trabajo recuperó el circuito de las prácticas
+2 y 3, pero **sin libgpiod** en la parte de control directo de GPIO.
+
+#### Temas trabajados
+
+- Representación de enteros y conversiones entre tipos.
+- Desplazamientos, operaciones y máscaras de bits.
+- Casos de desbordamiento y sus consecuencias.
+- Mapeo de registros con `/dev/gpiomem` y `mmap`.
+- Accesos `volatile` a `GPFSEL`, `GPSET`, `GPCLR` y `GPLEV`.
+- Control de cuatro LEDs (GPIO17, 27, 22 y 23) y dos botones (GPIO5 y 6).
+- Integración de temperatura por I2C y potenciómetro por SPI.
+- Restauración de la configuración GPIO al finalizar.
+
+#### Programas principales
+
+| Archivo | Propósito |
+| --- | --- |
+| `tipos.c` | Explorar tipos, tamaños y conversiones en C. |
+| `bits.c` | Practicar operaciones y máscaras de bits. |
+| `desborde.c` | Estudiar los límites de representación de los enteros. |
+| `regs_leer.c` | Leer información de registros GPIO. |
+| `leds_regs.c` | Controlar LEDs directamente desde registros. |
+| `boton_regs.c` | Detectar el estado de los botones. |
+| `sensores.c` | Consultar los periféricos I2C y SPI. |
+| `panel.c` | Integrar LEDs, botones, sensor y potenciómetro. |
+| `gpio_regs.h` | Centralizar definiciones y acceso a registros GPIO. |
+
+#### Panel integrado
+
+El programa `panel.c` convirtió la lectura del potenciómetro (0–1023) en una
+barra de **0 a 4 LEDs**. El botón GPIO5 permitió congelar y reactivar el panel;
+GPIO6 sirvió para consultar los sensores. Al finalizar con `Ctrl+C`, el programa
+apagó los LEDs y restauró la configuración de los pines utilizada durante la
+práctica.
+
+Los scripts auxiliares `.sh` utilizados localmente no formaron parte de la
+publicación. El repositorio incluye los códigos fuente y el archivo de
+[evidencias de la práctica 7](practicas/07/evidencia.md).
+
+[Códigos completos de la práctica 7](practicas/07/)
+
+---
+
+### 🚨 Práctica 8 — Centinela: alarma térmica y optimización de CPU
+
+Implementación de una **alarma térmica en C** que reúne las entradas, salidas y
+protocolos de las prácticas anteriores. La aplicación mide la temperatura,
+calcula un umbral ajustable mediante potenciómetro, representa la cercanía a la
+alarma con cuatro LEDs y registra datos en un archivo CSV.
+
+#### Circuito utilizado
+
+- **Raspberry Pi 4** con GPIO17, 27, 22 y 23 para los cuatro LEDs.
+- **GPIO5** para pausar y reanudar; **GPIO6** para consultar el estado.
+- **BME280 por I2C** en `0x76`, identificado mediante el chip ID `0x60`.
+- **MCP3008 por SPI**, canal CH0, conectado a un potenciómetro de 10 kΩ.
+
+Aunque la guía menciona un BMP280, el sensor empleado físicamente fue un BME280,
+que permitió realizar las lecturas de temperatura con el kit entregado.
+
+#### Funcionamiento del Centinela
+
+Al iniciar, el programa promedia ocho lecturas de temperatura. El potenciómetro
+establece un umbral desde **0.50 °C hasta 3.50 °C por encima de la base**. La
+máquina de estados distingue entre:
+
+| Estado | Comportamiento |
+| --- | --- |
+| `VIGILANDO` | Barra progresiva de 0 a 4 LEDs según la distancia al umbral. |
+| `ALARMA` | Alternancia de los LEDs 1 y 3 con los LEDs 2 y 4 cada 250 ms. |
+| `PAUSADO` | LEDs apagados y alarma suspendida hasta reanudar con GPIO5. |
+
+La alarma se activa al alcanzar el umbral y se desactiva cuando la temperatura
+está **0.30 °C por debajo** de él (histéresis). El botón GPIO6 muestra en pantalla
+el estado, la temperatura, el umbral y la lectura del potenciómetro.
+
+El archivo `centinela.csv` registra una línea por segundo y líneas adicionales
+en los cambios de estado; las transiciones y el cierre solicitan sincronización
+mediante `fsync`. El archivo es generado durante la ejecución y **no se publica**
+en Git.
+
+#### Pruebas automáticas y simulación
+
+El código inicial del profesor pasó **7 de 43** pruebas. Tras implementar las siete
+funciones de `centinela_logica.h`, el resultado final fue:
+
+```text
+PRUEBAS: 43 de 43
+```
+
+La simulación con `make sim` mostró una base de **25.00 °C**, un umbral de
+**27.00 °C**, cambios de `VIGILANDO` a `ALARMA`, alternancia de LEDs, pausas y
+registros CSV. El programa real compiló sin advertencias con las opciones
+`-Wall -Wextra -Wconversion`.
+
+#### Comprobaciones con el circuito real
+
+- El sensor BME280 respondió en `0x76` y devolvió el identificador `0x60`.
+- El MCP3008 entregó valores de **0 a 1023**, equivalentes aproximadamente a
+  **0.00–3.30 V**, al girar el potenciómetro.
+- Los LEDs representaron el margen al umbral y alternaron por parejas durante
+  el estado `ALARMA`.
+- Se observaron las transiciones `VIGILANDO`, `ALARMA` y `PAUSADO` en pantalla
+  y en el CSV; el botón GPIO5 permitió pausar y reanudar.
+- Se verificó una transición de `ALARMA` a `VIGILANDO` al elevar el umbral con
+  el potenciómetro: temperatura de **23.08 °C** y umbral de **23.39 °C**.
+  La prueba de enfriamiento con **umbral fijo** quedó pendiente de acreditación.
+- El programa finalizó con `Ctrl+C` y el mensaje `Centinela detenido`.
+  Se observó el aviso `GPIO8 ya no esta en ALT0`, sin impedir las lecturas SPI;
+  la comprobación física final de la restauración de todos los pines quedó
+  pendiente.
+
+#### Mediciones de eficiencia
+
+Tiempo de CPU acumulado por el proceso durante **60 segundos**, medido con
+`medir_cpu.sh`:
+
+| Botones | Sensores | CPU en 60 s | Condiciones |
+| ---: | ---: | ---: | --- |
+| 20 ms | 250 ms | 80 ms | Primera configuración. |
+| 1 ms | 250 ms | 940 ms | Muestreo de botones muy frecuente. |
+| 50 ms | 250 ms | 40 ms | Se manipularon los botones durante la medición. |
+| 50 ms | 500 ms | 40 ms | Sin manipular el circuito. |
+| **50 ms** | **250 ms** | **40 ms** | Repetición final sin manipular el circuito. |
+
+Se eligió la configuración **50/250 ms**: igualó el menor tiempo de CPU medido,
+mantuvo la respuesta observada de los botones y permitió leer los sensores más
+frecuentemente que con un periodo de 500 ms. Las mediciones corresponden al
+experimento realizado; el tiempo de CPU no equivale directamente a energía
+consumida ni a duración de batería.
+
+#### Archivos y ejecución
+
+```text
+practicas/08/p08/
+├── centinela.c
+├── centinela_logica.h
+├── centinela_cfg.h
+├── hw.h
+├── hw_pi.h
+├── hw_sim.h
+├── gpio_regs.h
+├── sensores_lib.h
+├── prueba_logica.c
+├── medir_cpu.sh
+├── Makefile
+└── .gitignore
+```
+
+El `Makefile` permite ejecutar las pruebas, compilar la simulación y generar el
+programa real. Los ejecutables y el archivo `centinela.csv` quedan excluidos del
+repositorio mediante `.gitignore`.
+
+[Códigos completos de la práctica 8](practicas/08/p08/)
+
+---
+
 ## 🛠️ Compilación
 
 Los programas están desarrollados para **Linux / Raspberry Pi OS**.
@@ -523,6 +692,31 @@ Los programas están desarrollados para **Linux / Raspberry Pi OS**.
 ```bash
 sudo apt update
 sudo apt install -y build-essential libgpiod-dev i2c-tools pkg-config
+```
+
+### Compilar y ejecutar la práctica 8
+
+Dentro del directorio del kit, en Raspberry Pi:
+
+```bash
+cd /unam/fse/practicas/08/p08
+make prueba            # Ejecuta las 43 pruebas de logica
+make sim               # Compila el simulador
+# timeout -s INT 15 ./centinela_sim
+make centinela         # Compila el programa para la Pi
+./centinela            # Ejecuta con el circuito conectado
+# ./centinela 77       # Solo si el sensor responde en 0x77
+```
+
+Se debe cerrar `./centinela` con `Ctrl+C`, sin usar `sudo`. El programa requiere
+permisos sobre `/dev/gpiomem`, `/dev/i2c-1` y `/dev/spidev0.0`.
+
+Para medir el uso de CPU, en una **segunda terminal SSH** mientras Centinela
+permanece ejecutándose:
+
+```bash
+cd /unam/fse/practicas/08/p08
+./medir_cpu.sh 60
 ```
 
 ### Compilar los programas de la práctica 3
@@ -747,7 +941,7 @@ systemctl --failed --no-pager
 
 ## 🔄 Flujo de trabajo con Git
 
-El repositorio conserva el historial de las prácticas **01 a 06** en la rama
+El repositorio conserva el historial de las prácticas **01 a 08** en la rama
 `main`. La publicación se realiza desde el repositorio de la Raspberry Pi,
 ubicado en `/unam/fse`.
 
@@ -821,6 +1015,11 @@ Durante las prácticas se han aplicado conceptos como:
 - Dispositivos de caracteres y operaciones de archivo.
 - Llamadas al sistema, tuberías y trazas con `strace`.
 - Medición del costo de acceso al kernel y a buses de periféricos.
+- Acceso directo a registros GPIO mediante `/dev/gpiomem`, `mmap` y `volatile`.
+- Operaciones a nivel de bits y desbordamiento de tipos enteros.
+- Máquinas de estados e histéresis.
+- Registro y sincronización de datos mediante CSV y `fsync`.
+- Pruebas automatizadas y medición del tiempo de CPU con `/proc`.
 - Control de versiones con Git.
 
 ---
@@ -868,4 +1067,6 @@ Se busca mantener:
 - [Git Documentation](https://git-scm.com/doc)
 - [Microchip MCP3008](https://www.microchip.com/en-us/product/mcp3008)
 - [Bosch BME280](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/)
-
+- [Linux manual pages: mmap(2)](https://man7.org/linux/man-pages/man2/mmap.2.html)
+- [Linux manual pages: fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)
+- [Linux manual pages: proc(5)](https://man7.org/linux/man-pages/man5/proc.5.html)
