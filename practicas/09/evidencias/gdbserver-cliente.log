@@ -1,0 +1,17 @@
+Remote debugging using localhost:2345
+Reading /lib/ld-linux-aarch64.so.1 from remote target...
+warning: File transfers from remote targets can be slow. Use "set sysroot" to access files locally instead.
+Reading /lib/ld-linux-aarch64.so.1 from remote target...
+Reading symbols from target:/lib/ld-linux-aarch64.so.1...
+(No debugging symbols found in target:/lib/ld-linux-aarch64.so.1)
+0x0000007ff7fd92c0 in ?? () from target:/lib/ld-linux-aarch64.so.1
+Breakpoint 1 at 0x555555109c: file /unam/fse/practicas/08/p08/centinela_logica.h, line 108.
+Continuing.
+Reading /lib/aarch64-linux-gnu/libc.so.6 from remote target...
+
+Breakpoint 1, estado_siguiente (actual=VIGILANDO, temp_c100=2005, umbral_c100=2055, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+108	    if (actual == PAUSADO) {
+#0  estado_siguiente (actual=VIGILANDO, temp_c100=2005, umbral_c100=2055, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+#1  0x0000005555552050 in main (argc=1, argv=0x7fffffed98) at centinela.c:145
+Continuing.
+[Inferior 1 (process 3876) exited normally]

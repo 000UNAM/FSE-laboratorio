@@ -1,0 +1,64 @@
+Temporary breakpoint 1 at 0x884: file f3_corrupcion.c, line 32.
+Starting program: /unam/fse/practicas/09/p09/f3_corrupcion
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Temporary breakpoint 1, main () at f3_corrupcion.c:32
+32	    iniciar();
+Hardware watchpoint 2: cfg.umbral
+Continuing.
+
+Hardware watchpoint 2: cfg.umbral
+
+Old value = 0
+New value = 2700
+iniciar () at f3_corrupcion.c:18
+18	}
+Continuing.
+
+Hardware watchpoint 2: cfg.umbral
+
+Old value = 2700
+New value = 1634541669
+0x0000007ff7e7ea9c in strcpy () from /lib/aarch64-linux-gnu/libc.so.6
+Continuing.
+[Inferior 1 (process 1976) exited normally]
+No stack.
+Temporary breakpoint 3 at 0x5555550884: file f3_corrupcion.c, line 32.
+Starting program: /unam/fse/practicas/09/p09/f3_corrupcion
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Temporary breakpoint 3, main () at f3_corrupcion.c:32
+32	    iniciar();
+Hardware watchpoint 4: cfg.umbral
+Continuing.
+
+Hardware watchpoint 4: cfg.umbral
+
+Old value = 0
+New value = 2700
+iniciar () at f3_corrupcion.c:18
+18	}
+Continuing.
+
+Hardware watchpoint 4: cfg.umbral
+
+Old value = 2700
+New value = 1634541669
+0x0000007ff7e7ea9c in strcpy () from /lib/aarch64-linux-gnu/libc.so.6
+#0  0x0000007ff7e7ea9c in strcpy () from /lib/aarch64-linux-gnu/libc.so.6
+#1  0x0000005555550840 in renombrar (nombre=0x5555550950 "cuarto de maquinas") at f3_corrupcion.c:22
+#2  0x00000055555508c4 in main () at f3_corrupcion.c:35
+#1  0x0000005555550840 in renombrar (nombre=0x5555550950 "cuarto de maquinas") at f3_corrupcion.c:22
+22	    strcpy(cfg.etiqueta, nombre);
+17	    cfg.umbral = 2700;
+18	}
+19
+20	static void renombrar(const char *nombre)
+21	{
+22	    strcpy(cfg.etiqueta, nombre);
+23	}
+24
+25	static int excede(int temperatura)
+26	{

@@ -1,0 +1,11 @@
+Breakpoint 1 at 0x9fc: file averiado_corregido.c, line 53.
+Starting program: /unam/fse/practicas/09/p09/averiado_corregido
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Breakpoint 1, estado_siguiente (actual=ALARMA, temp=2670, boton=0, valida=1) at averiado_corregido.c:53
+53	        return temp >= UMBRAL - HISTERESIS ? ALARMA : VIGILANDO;
+Run till exit from #0  estado_siguiente (actual=ALARMA, temp=2670, boton=0, valida=1) at averiado_corregido.c:53
+0x0000005555550ba8 in main () at averiado_corregido.c:88
+88	        e = estado_siguiente(e, prom, 0, valida);
+Value returned is $1 = ALARMA

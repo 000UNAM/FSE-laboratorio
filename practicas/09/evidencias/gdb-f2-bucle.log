@@ -1,0 +1,30 @@
+Starting program: /unam/fse/practicas/09/p09/f2_bucle
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGINT, Interrupt.
+ponderado (v=0x7ffffff0a0, pesos=0x7ffffff080, n=8) at f2_bucle.c:16
+16	        acumulado += (long)v[i % n] * pesos[i % n];
+#0  ponderado (v=0x7ffffff0a0, pesos=0x7ffffff080, n=8) at f2_bucle.c:16
+#1  0x00000055555508e0 in main () at f2_bucle.c:28
+acumulado = 15441993956254
+divisor = 6236417736
+i = 4989134191
+$1 = 4989134191
+8
+9	static long ponderado(const int *v, const int *pesos, int n)
+10	{
+11	    long acumulado = 0;
+12	    long divisor = 0;
+13	    long i = 1;
+14
+15	    while (i != n) {
+16	        acumulado += (long)v[i % n] * pesos[i % n];
+17	        divisor += pesos[i % n];
+18	        i += 2;
+19	    }
+20	    return acumulado / divisor;
+v = 0x7ffffff0a0
+pesos = 0x7ffffff080
+n = 8
+$2 = 7

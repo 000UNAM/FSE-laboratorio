@@ -1,0 +1,86 @@
+Breakpoint 1 at 0x109c: file /unam/fse/practicas/08/p08/centinela_logica.h, line 108.
+Starting program: /unam/fse/practicas/09/p09/centinela_dbg
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Breakpoint 1, estado_siguiente (actual=VIGILANDO, temp_c100=2045, umbral_c100=2395, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+108	    if (actual == PAUSADO) {
+actual = VIGILANDO
+temp_c100 = 2045
+umbral_c100 = 2395
+hay_pausa = 0
+#0  estado_siguiente (actual=VIGILANDO, temp_c100=2045, umbral_c100=2395, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+#1  0x0000005555552050 in main (argc=1, argv=0x7ffffff238) at centinela.c:145
+actual = VIGILANDO
+temp_c100 = 2495
+umbral_c100 = 2395
+hay_pausa = 0
+Run till exit from #0  estado_siguiente (actual=VIGILANDO, temp_c100=2495, umbral_c100=2395, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+0x0000005555552050 in main (argc=1, argv=0x7ffffff238) at centinela.c:145
+145			nuevo = estado_siguiente(estado, temp, umbral, hay_pausa);
+Value returned is $1 = ALARMA
+Breakpoint 2 at 0x555555109c: file /unam/fse/practicas/08/p08/centinela_logica.h, line 108.
+Continuing.
+
+Breakpoint 2, estado_siguiente (actual=ALARMA, temp_c100=2007, umbral_c100=2395, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+108	    if (actual == PAUSADO) {
+Run till exit from #0  estado_siguiente (actual=ALARMA, temp_c100=2007, umbral_c100=2395, hay_pausa=0) at /unam/fse/practicas/08/p08/centinela_logica.h:108
+0x0000005555552050 in main (argc=1, argv=0x7ffffff238) at centinela.c:145
+145			nuevo = estado_siguiente(estado, temp, umbral, hay_pausa);
+Value returned is $2 = VIGILANDO
+Breakpoint 3 at 0x5555550f38: file /unam/fse/practicas/08/p08/centinela_logica.h, line 34.
+Continuing.
+
+Breakpoint 3, umbral_desde_pot (base_c100=2045, pot=1023) at /unam/fse/practicas/08/p08/centinela_logica.h:34
+34	        (pot * (unsigned)UMBRAL_RANGO_C100) / 1023u;
+base_c100 = 2045
+pot = 1023
+Continuing.
+
+Breakpoint 3, umbral_desde_pot (base_c100=2045, pot=84) at /unam/fse/practicas/08/p08/centinela_logica.h:34
+34	        (pot * (unsigned)UMBRAL_RANGO_C100) / 1023u;
+base_c100 = 2045
+pot = 84
+#1  0x0000005555552034 in main (argc=1, argv=0x7ffffff238) at centinela.c:142
+142				umbral = umbral_desde_pot(base, pot);
+hay_pausa = 0
+pide_estado = 0
+nuevo = VIGILANDO
+t = 541237
+b = 0
+mascara = 131072
+direccion = 118
+hw = {gpio = 0x7ff7ff1000, fd_i2c = 3, fd_spi = 4, calib = {T1 = 27893, T2 = 26742, T3 = 50}}
+reg = 0x55555712a0
+lecturas = {2487, 1972, 1976, 1981, 1984, 1985, 1987, 1989}
+base = 2045
+temp = 2005
+umbral = 2395
+pot = 84
+b_antes = 0
+estado = VIGILANDO
+t0 = 502786
+t_sensor = 541237
+t_registro = 428060
+mascara_actual = 131072
+Hardware watchpoint 4: estado
+Continuing.
+
+Hardware watchpoint 4: estado
+
+Old value = VIGILANDO
+New value = PAUSADO
+main (argc=1, argv=0x7ffffff238) at centinela.c:148
+148				registrar(reg, t, temp, umbral, estado, 1);
+Continuing.
+
+Hardware watchpoint 4: estado
+
+Old value = PAUSADO
+New value = VIGILANDO
+main (argc=1, argv=0x7ffffff238) at centinela.c:148
+148				registrar(reg, t, temp, umbral, estado, 1);
+Continuing.
+Watchpoint 4 deleted because the program has left the block
+in which its expression is valid.
+[Inferior 1 (process 1909) exited normally]

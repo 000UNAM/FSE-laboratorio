@@ -1,0 +1,15 @@
+Breakpoint 1 at 0xa54: file averiado_corregido.c, line 66.
+Starting program: /unam/fse/practicas/09/p09/averiado_corregido
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Breakpoint 1, registrar (t_s=11, temp=0, e=FALLA) at averiado_corregido.c:66
+66	    strcpy(etiqueta, nombre_estado[e]);
+$1 = FALLA
+$2 = 3
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000007ff7e7ea48 in strcpy () from /lib/aarch64-linux-gnu/libc.so.6
+#0  0x0000007ff7e7ea48 in strcpy () from /lib/aarch64-linux-gnu/libc.so.6
+#1  0x0000005555550a6c in registrar (t_s=11, temp=0, e=FALLA) at averiado_corregido.c:66
+#2  0x0000005555550bbc in main () at averiado_corregido.c:89

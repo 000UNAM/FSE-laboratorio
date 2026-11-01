@@ -1,0 +1,13 @@
+Starting program: /unam/fse/practicas/09/p09/f1_nulo
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000005555550940 in main () at f1_nulo.c:44
+44	    printf("pico: %d\n", *pico);
+#0  0x0000005555550940 in main () at f1_nulo.c:44
+$1 = (const int *) 0x0
+crudas = {-9999, -9999, -9999, -9999, -9999, -9999}
+validas = {0, 0, -1, 0, -136384400, 127}
+cuantas = 0
+pico = 0x0

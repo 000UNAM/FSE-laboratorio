@@ -1,0 +1,10 @@
+Starting program: /unam/fse/practicas/09/p09/averiado
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000005555550904 in ventana_promedio (w=0x7fffffeb88) at averiado.c:36
+36	        suma += w->dato[i];
+$1 = {dato = {2540, 2580, 2640, 2710}, cuenta = 2760, pos = 0}
+#0  0x0000005555550904 in ventana_promedio (w=0x7fffffeb88) at averiado.c:36
+#1  0x0000005555550b98 in main () at averiado.c:86
